@@ -1,0 +1,46 @@
+import pygame
+import sys
+
+pygame.init()
+
+#this sets a value which I will use for the screen resolution
+res = (720,720)
+
+#this opens a window with the 720 resolution
+screen = pygame.display.set_mode(res)
+
+#this code sets a color variable to white
+color = (255,255,255)
+
+#this code sets the color of the button, light pink version
+color_light(255,182,193)
+
+#this code sets the color of the button, dark pink version
+color_dark(231,84,128)
+
+#this stores the height of the screen as a variable
+height = screen.get_height()
+
+#this defines a font
+# TO CHANGE: SEE WHICH FONT TO PICK FROM PI BUILT IN
+smallfont = pygame.font.SysFont('Corbel',35)
+
+#this code lets the user input a message to be sai
+message = 
+
+#this writes text in the font. This entire code is a quit button
+text = smalldont.render('quit', True, color)
+
+while True:
+	for ev in pugame.event.get():
+		if ev.type == pygame.QUIT:
+			pygame.quit()
+		
+		if ev.type == pygame.MOUSEBUTTONDOWN:
+			if width/2 <= mouse[0] <= width/2+140 and height/2 <= mouse[1] <= height/2+40:
+				pygame.quit()
+
+	screen.fill((170,170,170))
+
+
+
