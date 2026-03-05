@@ -1,46 +1,142 @@
 import pygame
+from datetime import datetime, timedelta
 import sys
+import subprocess
 
 pygame.init()
+pygame.mixer.init()
 
-#this sets a value which I will use for the screen resolution
-res = (720,720)
+screen_res = (720, 720)
+screen = pygame.display.set_mode(screen_res)  # use pygame.FULLSCREEN if desired
+clock = pygame.time.Clock()
 
-#this opens a window with the 720 resolution
-screen = pygame.display.set_mode(res)
+# Fonts & colors
+font_large = pygame.font.SysFont("Arial", 50)
+font_small = pygame.font.SysFont("Corbel", 35)
+text_color = (255, 255, 255)
+color_light = (255, 182, 193)
+color_dark = (231, 84, 128)
+border_inactive = (100, 100, 100)
+border_active = (0, 0, 0)
 
-#this code sets a color variable to white
-color = (255,255,255)
 
-#this code sets the color of the button, light pink version
-color_light(255,182,193)
+input_boxes = [
+    {"label": "Enter alarm time (HH:MM:SS):", "rect": pygame.Rect(50, 150, 500, 50), "text": "", "active": False},
+    {"label": "Enter message to play:", "rect": pygame.Rect(50, 250, 500, 50), "text": "", "active": False},
+    {"label": "Enter voice (Kristin/Bryce):", "rect": pygame.Rect(50, 350, 500, 50), "text": "", "active": False},
+]
 
-#this code sets the color of the button, dark pink version
-color_dark(231,84,128)
+# Track variables
+timeAlarm = ""
+alarm_time_obj = None
+messageAlarm = ""
+voiceChoice = ""
+alarm_triggered = False
 
-#this stores the height of the screen as a variable
-height = screen.get_height()
+# Flashing alarm
+flash_state = True
+last_flash = datetime.now()
 
-#this defines a font
-# TO CHANGE: SEE WHICH FONT TO PICK FROM PI BUILT IN
-smallfont = pygame.font.SysFont('Corbel',35)
+# Timer event for 1-second updates
+UPDATE_EVENT = pygame.USEREVENT + 1
+pygame.time.set_timer(UPDATE_EVENT, 1000)
 
-#this code lets the user input a message to be sai
-message = 
+running = True
 
-#this writes text in the font. This entire code is a quit button
-text = smalldont.render('quit', True, color)
+while running:
+    now = datetime.now()
+    mouse_pos = pygame.mouse.get_pos()
+    
+    # ---------- FLASH TOGGLE ----------
+    if (now - last_flash).total_seconds() >= 0.5:
+        flash_state = not flash_state
+        last_flash = now
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # Quit button
+            if 20 <= mouse_pos[0] <= 100 and 20 <= mouse_pos[1] <= 60:
+                running = False
+            
+            # Activate input boxes
+            for box in input_boxes:
+                box["active"] = box["rect"].collidepoint(event.pos)
+        
+        if event.type == pygame.KEYDOWN:
+            for i, box in enumerate(input_boxes):
+                if box["active"]:
+                    if event.key == pygame.K_BACKSPACE:
+                        box["text"] = box["text"][:-1]
+                    elif event.key == pygame.K_RETURN:
+                        print(f"Input box {i+1} submitted:", box["text"])
+                        # Update variables when submitted
+                        if i == 0:
+                            timeAlarm = box["text"]
+                            try:
+                                alarm_time_obj = datetime.strptime(timeAlarm, "%H:%M:%S").time()
+                                alarm_triggered = False  # reset trigger if new time
+                            except ValueError:
+                                alarm_time_obj = None
+                                print("Invalid time format! Use HH:MM:SS")
+                        elif i == 1:
+                            messageAlarm = box["text"]
+                        elif i == 2:
+                            voiceChoice = box["text"]
+                    else:
+                        box["text"] += event.unicode
 
-while True:
-	for ev in pugame.event.get():
-		if ev.type == pygame.QUIT:
-			pygame.quit()
-		
-		if ev.type == pygame.MOUSEBUTTONDOWN:
-			if width/2 <= mouse[0] <= width/2+140 and height/2 <= mouse[1] <= height/2+40:
-				pygame.quit()
+        
+        # ---------- ALARM CHECK ----------
+        if event.type == UPDATE_EVENT:
+            if alarm_time_obj and not alarm_triggered:
+                current_time_obj = now.time()
+                if (current_time_obj.hour == alarm_time_obj.hour and
+                    current_time_obj.minute == alarm_time_obj.minute and
+                    current_time_obj.second == alarm_time_obj.second):
+                    # Play chosen voice
+                    if voiceChoice.lower() == "bryce":
+                        subprocess.Popen(["aplay", "bryce.wav"])
+                    elif voiceChoice.lower() == "kristin":
+                        subprocess.Popen(["aplay", "kristin.wav"])
+                    alarm_triggered = True
+    
+    screen.fill((170, 170, 170))
+    
+    # Draw quit button
+    if 20 <= mouse_pos[0] <= 100 and 20 <= mouse_pos[1] <= 60:
+        pygame.draw.rect(screen, color_light, [20, 20, 80, 40])
+    else:
+        pygame.draw.rect(screen, color_dark, [20, 20, 80, 40])
+    quit_text = font_small.render("Quit", True, text_color)
+    screen.blit(quit_text, (25, 25))
+    
+    # Draw input boxes
+    for box in input_boxes:
+        border_color = border_active if box["active"] else border_inactive
+        pygame.draw.rect(screen, border_color, box["rect"], 2)
+        # Draw text inside box
+        text_surface = font_small.render(box["text"], True, text_color)
+        screen.blit(text_surface, (box["rect"].x + 5, box["rect"].y + 5))
+        # Draw label above box
+        label_surface = font_small.render(box["label"], True, text_color)
+        screen.blit(label_surface, (box["rect"].x, box["rect"].y - 35))
+    
+    # Draw current time
+    current_time_surface = font_large.render(now.strftime("%I:%M:%S %p"), True, text_color)
+    screen.blit(current_time_surface, (20, 50))
+    
+    # Flashing alarm message
+    if alarm_triggered and flash_state:
+        flash_surface = font_large.render("WAKE UP!", True, (255, 0, 0))
+        screen.blit(flash_surface, (150, 500))
+    
+    pygame.display.flip()
+    clock.tick(60)
 
-	screen.fill((170,170,170))
-
+pygame.quit()
+sys.exit()
 
 
